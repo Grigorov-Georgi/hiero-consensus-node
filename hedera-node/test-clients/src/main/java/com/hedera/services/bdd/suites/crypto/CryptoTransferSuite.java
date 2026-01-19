@@ -10,7 +10,9 @@ import static com.hedera.services.bdd.spec.HapiPropertySource.asAccountString;
 import static com.hedera.services.bdd.spec.HapiPropertySource.asTopicString;
 import static com.hedera.services.bdd.spec.HapiSpec.hapiTest;
 import static com.hedera.services.bdd.spec.assertions.AccountInfoAsserts.accountWith;
+import static com.hedera.services.bdd.spec.assertions.AccountInfoAsserts.approxChangeFromSnapshot;
 import static com.hedera.services.bdd.spec.assertions.AccountInfoAsserts.changeFromSnapshot;
+import static com.hedera.services.bdd.spec.assertions.AccountInfoAsserts.tokenChangeFromSnapshot;
 import static com.hedera.services.bdd.spec.assertions.AutoAssocAsserts.accountTokenPairsInAnyOrder;
 import static com.hedera.services.bdd.spec.assertions.TransactionRecordAsserts.includingFungibleMovement;
 import static com.hedera.services.bdd.spec.assertions.TransactionRecordAsserts.includingNonfungibleMovement;
@@ -198,6 +200,128 @@ public class CryptoTransferSuite {
     private static final String FT_XFER = "ftXfer";
     private static final String OTHER_ACCOUNT = "otheraccount";
     private static final String TOKEN_METADATA = "Please mind the vase.";
+
+    @HapiTest
+    final Stream<DynamicTest> nativeTransferBetweenTwoAccounts() {
+        var transferAmount = ONE_HUNDRED_HBARS / 2;
+        var transferTxn = "transferTxn";
+
+        return hapiTest(
+                // create accounts
+                cryptoCreate(SENDER).balance(ONE_HUNDRED_HBARS),
+                cryptoCreate(RECEIVER).balance(ONE_HBAR),
+
+                // save their initial state
+                balanceSnapshot("senderBefore", SENDER),
+                balanceSnapshot("receiverBefore", RECEIVER),
+
+                // make transfer and save the record
+                cryptoTransfer(tinyBarsFromTo(SENDER, RECEIVER, transferAmount))
+                        .payingWith(SENDER)
+                        .via(transferTxn),
+
+                // compare with previous account state
+                getAccountBalance(SENDER).hasTinyBars(approxChangeFromSnapshot("senderBefore", -transferAmount, ONE_HBAR)),
+                getAccountBalance(RECEIVER).hasTinyBars(changeFromSnapshot("receiverBefore", +transferAmount)),
+
+                // verify record has status code 'success'
+                getTxnRecord(transferTxn)
+                        .hasPriority(recordWith().status(SUCCESS))
+                        .logged());
+    }
+
+    @HapiTest
+    final Stream<DynamicTest> nftTransferBetweenTwoAccounts() {
+        var transferTxn = "nftTransferTxn";
+
+        return hapiTest(
+                // create accounts
+                cryptoCreate(SENDER).balance(ONE_HUNDRED_HBARS),
+                cryptoCreate(RECEIVER).balance(ONE_HBAR),
+
+                // create supply key in order to be able to mint the NFT
+                newKeyNamed(SUPPLY_KEY),
+
+                // create a NFT
+                tokenCreate(NON_FUNGIBLE_TOKEN)
+                        .tokenType(TokenType.NON_FUNGIBLE_UNIQUE)
+                        .treasury(SENDER)
+                        .supplyKey(SUPPLY_KEY)
+                        .initialSupply(0L),
+
+                // mint single NFT
+                mintToken(NON_FUNGIBLE_TOKEN, List.of(ByteString.copyFromUtf8("NFT metadata"))),
+
+                // make receiver associate in order to be able to receive the NFT
+                tokenAssociate(RECEIVER, NON_FUNGIBLE_TOKEN),
+
+                // assert the sender has single NFT
+                getAccountBalance(SENDER).hasTokenBalance(NON_FUNGIBLE_TOKEN, 1L),
+
+                // transfer the NFT from sender to receiver
+                cryptoTransfer(movingUnique(NON_FUNGIBLE_TOKEN, 1L).between(SENDER, RECEIVER))
+                        .payingWith(SENDER)
+                        .via(transferTxn),
+
+                // assert NFT has different owner
+                getAccountBalance(SENDER).hasTokenBalance(NON_FUNGIBLE_TOKEN, 0L),
+                getAccountBalance(RECEIVER).hasTokenBalance(NON_FUNGIBLE_TOKEN, 1L),
+
+                // verify record has status code 'success'
+                getTxnRecord(transferTxn).hasPriority(recordWith().status(SUCCESS)).logged());
+    }
+
+    @HapiTest
+    final Stream<DynamicTest> customTokenTransferBetweenTwoAccounts() {
+        var transferAmount = 100L;
+        var initialSupply = 1000L;
+        var transferTxn = "transferTxn";
+
+        return hapiTest(
+                // create accounts
+                cryptoCreate(SENDER).balance(ONE_HUNDRED_HBARS),
+                cryptoCreate(RECEIVER).balance(ONE_HBAR),
+
+                // create a token with treasury account of the sender and initial supply
+                tokenCreate(FUNGIBLE_TOKEN)
+                        .treasury(SENDER)
+                        .initialSupply(initialSupply),
+
+                // make the receiver able to receive this token
+                tokenAssociate(RECEIVER, FUNGIBLE_TOKEN),
+
+                // save the state before the transfer
+                balanceSnapshot("senderHbarBefore", SENDER),
+                balanceSnapshot("senderTokenBefore", SENDER)
+                        .forToken(FUNGIBLE_TOKEN),
+                balanceSnapshot("receiverTokenBefore", RECEIVER)
+                        .forToken(FUNGIBLE_TOKEN),
+
+                // make the transfer
+                cryptoTransfer(moving(transferAmount, FUNGIBLE_TOKEN).between(SENDER, RECEIVER))
+                        .payingWith(SENDER)
+                        .via(transferTxn),
+
+                // compare with previous account state
+                getAccountBalance(SENDER).hasTokenBalance(
+                        FUNGIBLE_TOKEN,
+                        tokenChangeFromSnapshot(FUNGIBLE_TOKEN, "senderTokenBefore", -transferAmount)
+                ),
+
+                getAccountBalance(RECEIVER).hasTokenBalance(
+                        FUNGIBLE_TOKEN,
+                        tokenChangeFromSnapshot(FUNGIBLE_TOKEN, "receiverTokenBefore", +transferAmount)
+                ),
+
+                // verify that sender paid for the transaction
+                getAccountInfo(SENDER).has(accountWith().balanceLessThan(ONE_HUNDRED_HBARS)),
+
+                // verify record has status code 'success'
+                getTxnRecord(transferTxn)
+                        .hasPriority(recordWith().status(SUCCESS))
+                        .logged()
+        );
+    }
 
     @HapiTest
     final Stream<DynamicTest> insufficientBalanceForCustomFeeFails() {

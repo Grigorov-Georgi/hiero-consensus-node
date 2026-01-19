@@ -20,6 +20,7 @@ import com.hedera.node.config.ConfigProvider;
 import com.hedera.node.internal.network.PendingProof;
 import com.hedera.pbj.runtime.io.buffer.Bytes;
 import com.swirlds.platform.system.state.notifications.StateHashedNotification;
+import com.swirlds.state.MerkleNodeState;
 import com.swirlds.state.State;
 import com.swirlds.state.spi.CommittableWritableStates;
 import com.swirlds.state.spi.ReadableKVState;
@@ -127,7 +128,7 @@ public class BlockStreamManagerWrapper {
     public void startBlock(long blockNumber, BlockItem header) {
         state.updateBlockNumber(blockNumber);
         BenchmarkRound round = new BenchmarkRound(currentRoundNumber++, Instant.now());
-        manager.startRound(round, state);
+        manager.startRound(round, (MerkleNodeState) state);
         manager.writeItem(header);
     }
 
@@ -148,7 +149,7 @@ public class BlockStreamManagerWrapper {
         manager.notify(notification);
 
         // Now endRound() can proceed (it waits for the previous round's future, which we completed above)
-        manager.endRound(state, roundNum);
+        manager.endRound((MerkleNodeState) state, roundNum);
     }
 
     public long getTotalItemsWritten() {
