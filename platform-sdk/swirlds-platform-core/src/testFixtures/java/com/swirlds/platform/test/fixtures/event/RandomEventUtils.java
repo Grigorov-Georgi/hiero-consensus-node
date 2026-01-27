@@ -12,6 +12,7 @@ import java.util.stream.Stream;
 import org.hiero.base.crypto.SignatureType;
 import org.hiero.base.crypto.test.fixtures.CryptoRandomUtils;
 import org.hiero.consensus.crypto.PbjStreamHasher;
+import org.hiero.consensus.hashgraph.impl.EventImpl;
 import org.hiero.consensus.model.event.PlatformEvent;
 import org.hiero.consensus.model.event.UnsignedEvent;
 import org.hiero.consensus.model.node.NodeId;
