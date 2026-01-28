@@ -3,6 +3,8 @@ package org.hiero.consensus.hashgraph.impl.consensus;
 
 import static com.swirlds.platform.test.fixtures.PlatformTestUtils.createPlatformContext;
 
+import static com.swirlds.platform.test.fixtures.PlatformTestUtils.createPlatformContext;
+
 import com.swirlds.common.context.PlatformContext;
 import com.swirlds.platform.test.fixtures.consensus.ConsensusTestParams;
 import com.swirlds.platform.test.fixtures.consensus.ConsensusTestRunner;

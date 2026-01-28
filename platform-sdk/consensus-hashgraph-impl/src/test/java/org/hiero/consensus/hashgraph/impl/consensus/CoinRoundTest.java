@@ -3,6 +3,8 @@ package org.hiero.consensus.hashgraph.impl.consensus;
 
 import static com.swirlds.platform.test.fixtures.PlatformTestUtils.createDefaultPlatformContext;
 
+import static com.swirlds.platform.test.fixtures.PlatformTestUtils.createDefaultPlatformContext;
+
 import com.hedera.hapi.node.state.roster.Roster;
 import com.swirlds.common.context.PlatformContext;
 import com.swirlds.common.test.fixtures.io.ResourceLoader;
