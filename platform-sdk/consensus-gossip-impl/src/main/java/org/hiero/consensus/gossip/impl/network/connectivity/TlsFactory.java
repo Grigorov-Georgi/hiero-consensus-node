@@ -3,6 +3,7 @@ package org.hiero.consensus.gossip.impl.network.connectivity;
 
 import com.swirlds.config.api.Configuration;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import org.hiero.base.crypto.KeystorePasswordPolicy;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
