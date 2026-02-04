@@ -3,7 +3,7 @@ package org.hiero.consensus.gossip.impl.network.connectivity;
 
 import com.swirlds.config.api.Configuration;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import com.swirlds.platform.crypto.KeystorePasswordPolicy;
+import org.hiero.base.crypto.KeystorePasswordPolicy;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -30,6 +30,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.hiero.base.crypto.config.CryptoConfig;
 import org.hiero.consensus.crypto.ConsensusCryptoUtils;
+import org.hiero.consensus.crypto.CryptoConstants;
 import org.hiero.consensus.exceptions.PlatformConstructionException;
 import org.hiero.consensus.gossip.config.GossipConfig;
 import org.hiero.consensus.gossip.config.SocketConfig;
